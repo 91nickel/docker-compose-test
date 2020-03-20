@@ -1,0 +1,42 @@
+# Версия docker-compose
+version: '3'
+# Список наших сервисов (контейнеров)
+services:
+  nginx:
+    # используем последний стабильный образ nginx
+    image: nginx:latest
+    # маршрутизируем порты
+    ports:
+      - "80:80"
+      - "443:443"
+    # монтируем директории, слева директории на основной машине, справа - куда они монтируются в контейнере
+    volumes:
+      - ./docker/nginx/hosts:/etc/nginx/conf.d
+      - ./www:/var/www
+      - ./docker/nginx/logs:/var/log/nginx
+    # nginx должен общаться с php контейнером
+    links:
+      - php
+  php:
+    # у нас свой образ для PHP, указываем путь к нему и говорим что его надо собрать
+    build: ./docker/php
+    # этот образ будет общаться с mysql
+    links:
+      - db
+    # монтируем директорию с проектами
+    volumes:
+      - ./www:/var/www
+  db:
+    image: mariadb:10.3
+    restart: always
+    volumes:
+      - ./docker/mariadb:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: qwerty
+  admin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - 8090:80
+    links:
+      - db:db
